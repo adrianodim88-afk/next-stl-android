@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<title>NEXT STL</title>
+<style>[hidden]{display:none!important}html,body{margin:0}</style>
+<style>
+/* Layout: palco 3D em tela cheia (fundo escuro de joalheria) + painel inferior com os pesos. Tema único escuro, por escolha. */
+:root{
+  --bg:#0e0f11;            /* fundo do palco */
+  --panel:#17191c;         /* painel inferior */
+  --panel-2:#1e2125;       /* cartões de peso */
+  --line:#2a2e33;          /* divisórias */
+  --fg:#f3f4f5;            /* texto principal */
+  --muted:#9aa1a8;         /* texto secundário */
+  --accent:#f47a1f;        /* laranja NEXT */
+  --gold:#e7b24a;          /* ouro 18K */
+  --silver:#c9ced3;        /* prata 925 */
+  --brand:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --ui:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--ui);overflow:hidden;-webkit-tap-highlight-color:transparent}
+#app{position:relative;height:100%;width:100%}
+
+/* Palco 3D */
+#stage{position:absolute;inset:0;touch-action:none}
+#stage canvas{display:block;width:100%;height:100%}
+
+/* Marca no topo */
+.brand{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:8px;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
+  pointer-events:none;background:linear-gradient(to bottom,rgba(14,15,17,.85),rgba(14,15,17,0))}
+.brand .mark{font-family:var(--brand);font-weight:700;letter-spacing:.14em;font-size:15px}
+.brand .mark b{color:var(--accent)}
+.brand .tag{font-size:10px;letter-spacing:.22em;color:var(--muted);text-transform:uppercase;margin-top:1px}
+/* Fundo branco: adapta a marca e o estado vazio para ficarem legíveis */
+body[data-bg="white"] .brand{background:linear-gradient(to bottom,rgba(244,245,246,.92),rgba(244,245,246,0))}
+body[data-bg="white"] .brand .mark{color:#1a1c1e}
+body[data-bg="white"] .brand .tag{color:#6b7177}
+body[data-bg="white"] .empty .ico{color:#1a1c1e;background:#e9ebed;border-color:#d4d7da}
+body[data-bg="white"] .empty h1{color:#1a1c1e}
+body[data-bg="white"] .empty p{color:#565c62}
+.bgrow{display:flex;gap:8px}
+.bgrow button{flex:1;min-width:0;background:var(--panel-2);color:var(--fg);border:1px solid var(--line);border-radius:10px;
+  padding:9px 6px;font-family:var(--ui);font-weight:600;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+.bgrow button .dot{width:12px;height:12px;border-radius:50%}
+.bgrow button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+
+/* Estado vazio (nenhum STL aberto) */
+.empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  padding:0 max(24px,env(safe-area-inset-left,0px));text-align:center}
+.empty .ico{width:72px;height:72px;border-radius:20px;display:grid;place-items:center;background:var(--panel-2);border:1px solid var(--line);font-size:34px}
+.empty h1{font-family:var(--brand);font-weight:600;font-size:19px;margin:0}
+.empty p{margin:0;color:var(--muted);font-size:14px;line-height:1.5;max-width:30ch}
+
+/* Painel inferior */
+.panel{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);
+  padding:14px max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 14px) max(16px,env(safe-area-inset-left,0px));
+  display:flex;flex-direction:column;gap:12px;box-shadow:0 -18px 40px rgba(0,0,0,.35)}
+.fileline{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.fileline .name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fileline .dims{color:var(--muted);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* Trocar material (girar/ver) */
+.materials{display:flex;gap:8px}
+.materials button{flex:1;min-width:0;background:var(--panel-2);color:var(--fg);border:1px solid var(--line);border-radius:10px;
+  padding:9px 6px;font-family:var(--ui);font-weight:600;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+.materials button .dot{width:12px;height:12px;border-radius:50%}
+.materials button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+
+/* Cartões de peso */
+.weights{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wcard{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px 13px;display:flex;flex-direction:column;gap:3px}
+.wcard .lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
+.wcard .lbl .dot{width:9px;height:9px;border-radius:50%}
+.wcard .val{font-family:var(--brand);font-weight:700;font-size:21px;font-variant-numeric:tabular-nums;line-height:1.1}
+.wcard .val small{font-size:12px;font-weight:600;color:var(--muted);margin-left:3px}
+.note{color:var(--muted);font-size:11px;line-height:1.45;margin:-2px 0 0}
+
+/* Botão abrir */
+.openbtn{appearance:none;border:0;border-radius:12px;background:var(--accent);color:#1b1205;font-family:var(--brand);font-weight:700;
+  font-size:15px;padding:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;letter-spacing:.02em}
+.openbtn.secondary{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:600;padding:11px}
+.openbtn svg{width:18px;height:18px}
+input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.loading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(14,15,17,.6);font-size:14px;color:var(--muted)}
+.toast{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 26px);
+  background:#3a1d1d;border:1px solid #6b2b2b;color:#ffd9d4;font-size:13px;padding:11px 15px;border-radius:10px;max-width:86%;text-align:center;z-index:5;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+</style>
+
+</head>
+<body>
+<div id="app">
+  <div id="stage"></div>
+
+  <div class="brand">
+    <div>
+      <div class="mark">◇ <b>NEXT</b> STL</div>
+      <div class="tag">Visualizador de joia</div>
+    </div>
+  </div>
+
+  <div class="empty" id="empty">
+    <div class="ico">◇</div>
+    <h1>Abrir uma peça STL</h1>
+    <p>Escolha um arquivo <b>.stl</b> do seu celular para ver a joia em 3D e o peso em ouro e prata.</p>
+    <button class="openbtn" id="openEmpty" style="min-width:180px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      Abrir STL
+    </button>
+  </div>
+
+  <div class="panel" id="panel" hidden>
+    <div class="fileline">
+      <span class="name" id="fname">—</span>
+      <span class="dims" id="dims"></span>
+    </div>
+    <div class="materials" id="materials">
+      <button data-mat="preview" aria-pressed="true"><span class="dot" style="background:#d96612"></span>Laranja</button>
+      <button data-mat="gold" aria-pressed="false"><span class="dot" style="background:var(--gold)"></span>Ouro</button>
+      <button data-mat="silver" aria-pressed="false"><span class="dot" style="background:var(--silver)"></span>Prata</button>
+    </div>
+    <div class="bgrow" id="bgtoggle">
+      <button data-bg="black" aria-pressed="true"><span class="dot" style="background:#121316;border:1px solid #4a4e54"></span>Fundo preto</button>
+      <button data-bg="white" aria-pressed="false"><span class="dot" style="background:#fff;border:1px solid #c3c6ca"></span>Fundo branco</button>
+    </div>
+    <div class="weights">
+      <div class="wcard">
+        <div class="lbl"><span class="dot" style="background:var(--gold)"></span>Ouro 18K</div>
+        <div class="val" id="wGold">—<small>g</small></div>
+      </div>
+      <div class="wcard">
+        <div class="lbl"><span class="dot" style="background:var(--silver)"></span>Prata 925</div>
+        <div class="val" id="wSilver">—<small>g</small></div>
+      </div>
+    </div>
+    <p class="note">Peso aproximado para peça maciça (sem pedras/vazios). Ouro 18K 15,5 g/cm³ · Prata 925 10,36 g/cm³.</p>
+    <button class="openbtn secondary" id="openAgain">Abrir outro STL</button>
+  </div>
+
+  <div class="loading" id="loading" hidden>Carregando peça…</div>
+  <div class="toast" id="toast" hidden></div>
+  <input type="file" id="file" accept=".stl,model/stl,application/sla">
+</div>
+
+<script type="importmap">
+{"imports":{
+"three":"./three.module.js",
+"three/addons/":"./jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const DENS = { gold18: 15.5, silver925: 10.36 }; // g/cm³
+const $ = id => document.getElementById(id);
+const stage = $('stage');
+
+let renderer, scene, camera, controls, mesh, currentMat = 'preview';
+
+const renderer_ = new THREE.WebGLRenderer({ antialias:true, alpha:false, preserveDrawingBuffer:false });
+renderer = renderer_;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.45;
+stage.appendChild(renderer.domElement);
+
+scene = new THREE.Scene();
+scene.background = new THREE.Color('#0e0f11');
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+camera = new THREE.PerspectiveCamera(42, 1, 0.01, 100000);
+camera.position.set(0, 0, 100);
+
+controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.rotateSpeed = 0.9;
+controls.enablePan = true;
+
+// Luzes para brilho de joia (mais claras, pra ouro e prata não ficarem escuros)
+scene.add(new THREE.HemisphereLight(0xffffff, 0x404038, 1.0));
+const key  = new THREE.DirectionalLight(0xfff4e0, 2.0); key.position.set(5, 8, 10);  scene.add(key);
+const fill = new THREE.DirectionalLight(0xffffff, 1.1); fill.position.set(-4, 3, 8);  scene.add(fill);
+const rim  = new THREE.DirectionalLight(0xffffff, 1.0); rim.position.set(-6, 2, -5);  scene.add(rim);
+const top  = new THREE.DirectionalLight(0xffffff, 0.8); top.position.set(0, 10, 0);   scene.add(top);
+
+function resize(){
+  const w = stage.clientWidth, h = stage.clientHeight;
+  if(!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+function makeMaterial(kind){
+  if(kind === 'gold')   return new THREE.MeshStandardMaterial({ color:0xF4C65A, metalness:0.9, roughness:0.32, envMapIntensity:2.6 });
+  if(kind === 'silver') return new THREE.MeshStandardMaterial({ color:0xE2E6EA, metalness:0.9, roughness:0.26, envMapIntensity:2.6 });
+  return new THREE.MeshStandardMaterial({ color:0xCC6417, metalness:0.0, roughness:0.62, envMapIntensity:0.85 }); // preview laranja (mais escuro e uniforme)
+}
+function applyMaterial(kind){
+  currentMat = kind;
+  if(mesh){ const m = mesh.material; mesh.material = makeMaterial(kind); if(m) m.dispose(); }
+  [...document.querySelectorAll('#materials button')].forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.mat===kind)));
+}
+
+function volumeCm3(geo){
+  const p = geo.attributes.position; let v = 0;
+  const ax=new THREE.Vector3(), bx=new THREE.Vector3(), cx=new THREE.Vector3();
+  for(let i=0;i<p.count;i+=3){
+    ax.fromBufferAttribute(p,i); bx.fromBufferAttribute(p,i+1); cx.fromBufferAttribute(p,i+2);
+    v += ax.dot(bx.clone().cross(cx)) / 6;
+  }
+  return Math.abs(v) / 1000; // mm³ -> cm³ (STL em mm)
+}
+const fmt = n => n.toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+let toastTimer;
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.hidden=true, 4000); }
+
+function loadGeometry(geo, name){
+  // Deixa o anel "em pé": se a peça veio deitada (furo no eixo Y), gira 90°.
+  geo.computeBoundingBox();
+  const o = geo.boundingBox.getSize(new THREE.Vector3());
+  const menor = [o.x, o.y, o.z].sort((a,b)=>a-b)[0];
+  if(o.y <= menor*1.15 && o.y < o.x*0.8 && o.y < o.z*0.8){ geo.rotateX(-Math.PI/2); }
+  geo.computeVertexNormals();
+  geo.computeBoundingBox();
+  const bb = geo.boundingBox, size = new THREE.Vector3(), center = new THREE.Vector3();
+  bb.getSize(size); bb.getCenter(center);
+  geo.translate(-center.x, -center.y, -center.z); // centraliza
+
+  if(mesh){ scene.remove(mesh); mesh.geometry.dispose(); if(mesh.material) mesh.material.dispose(); }
+  mesh = new THREE.Mesh(geo, makeMaterial(currentMat));
+  scene.add(mesh);
+
+  // Enquadra a câmera na peça
+  const radius = size.length()/2 || 1;
+  const dist = radius / Math.sin((camera.fov*Math.PI/180)/2) * 1.25;
+  camera.position.set(dist*0.25, dist*0.15, dist);
+  camera.near = radius/100; camera.far = radius*100; camera.updateProjectionMatrix();
+  controls.target.set(0,0,0); controls.update();
+
+  // Medidas (mm) e pesos
+  $('dims').textContent = `${fmt(size.x)} × ${fmt(size.z)} × ${fmt(size.y)} mm`;
+  const vol = volumeCm3(geo);
+  $('wGold').innerHTML   = `${fmt(vol*DENS.gold18)}<small>g</small>`;
+  $('wSilver').innerHTML = `${fmt(vol*DENS.silver925)}<small>g</small>`;
+  $('fname').textContent = name.replace(/\.stl$/i,'');
+
+  $('empty').hidden = true;
+  $('panel').hidden = false;
+}
+
+const loader = new STLLoader();
+function openFile(file){
+  if(!file) return;
+  $('loading').hidden = false;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const geo = loader.parse(reader.result);
+      loadGeometry(geo, file.name || 'Joia STL');
+    }catch(e){
+      toast('Não consegui ler este arquivo. Confira se é um .stl válido.');
+    }finally{ $('loading').hidden = true; }
+  };
+  reader.onerror = () => { $('loading').hidden = true; toast('Não consegui abrir o arquivo.'); };
+  reader.readAsArrayBuffer(file);
+}
+
+$('file').addEventListener('change', e => { openFile(e.target.files[0]); e.target.value=''; });
+$('openEmpty').onclick = () => $('file').click();
+$('openAgain').onclick = () => $('file').click();
+$('materials').addEventListener('click', e => { const b = e.target.closest('button'); if(b) applyMaterial(b.dataset.mat); });
+
+function setBg(kind){
+  const white = kind === 'white';
+  scene.background = new THREE.Color(white ? 0xf4f5f6 : 0x0e0f11);
+  document.body.setAttribute('data-bg', white ? 'white' : 'black');
+  [...document.querySelectorAll('#bgtoggle button')].forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.bg===kind)));
+}
+$('bgtoggle').addEventListener('click', e => { const b = e.target.closest('button'); if(b) setBg(b.dataset.bg); });
+setBg('black');
+
+
+// Ponte com o app Android: recebe o arquivo STL tocado no WhatsApp
+window.__loadSTLFromNative = function(nameB64, dataB64){
+  try{
+    const name = decodeURIComponent(escape(atob(nameB64)));
+    const bin = atob(dataB64);
+    const len = bin.length;
+    const buf = new ArrayBuffer(len);
+    const view = new Uint8Array(buf);
+    for(let i=0;i<len;i++) view[i] = bin.charCodeAt(i);
+    const geo = loader.parse(buf);
+    loadGeometry(geo, name || 'Joia STL');
+    $('loading').hidden = true;
+  }catch(e){ $('loading').hidden = true; toast('Não consegui abrir este STL.'); }
+};
+
+(function loop(){ requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
+</script>
+</body>
+</html>
