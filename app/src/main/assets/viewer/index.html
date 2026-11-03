@@ -45,7 +45,7 @@ body[data-bg="white"] .empty h1{color:#1a1c1e}
 body[data-bg="white"] .empty p{color:#565c62}
 .bgrow{display:flex;gap:8px}
 .bgrow button{flex:1;min-width:0;background:var(--panel-2);color:var(--fg);border:1px solid var(--line);border-radius:10px;
-  padding:9px 6px;font-family:var(--ui);font-weight:600;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+  padding:6px 6px;font-family:var(--ui);font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
 .bgrow button .dot{width:12px;height:12px;border-radius:50%}
 .bgrow button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 
@@ -58,32 +58,32 @@ body[data-bg="white"] .empty p{color:#565c62}
 
 /* Painel inferior */
 .panel{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);
-  padding:14px max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 14px) max(16px,env(safe-area-inset-left,0px));
-  display:flex;flex-direction:column;gap:12px;box-shadow:0 -18px 40px rgba(0,0,0,.35)}
+  padding:9px max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 9px) max(16px,env(safe-area-inset-left,0px));
+  display:flex;flex-direction:column;gap:7px;box-shadow:0 -14px 34px rgba(0,0,0,.35)}
 .fileline{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
-.fileline .name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.fileline .dims{color:var(--muted);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.fileline .name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-size:13px}
+.fileline .dims{color:var(--muted);font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
 
 /* Trocar material (girar/ver) */
 .materials{display:flex;gap:8px}
 .materials button{flex:1;min-width:0;background:var(--panel-2);color:var(--fg);border:1px solid var(--line);border-radius:10px;
-  padding:9px 6px;font-family:var(--ui);font-weight:600;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+  padding:6px 6px;font-family:var(--ui);font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
 .materials button .dot{width:12px;height:12px;border-radius:50%}
 .materials button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 
 /* Cartões de peso */
-.weights{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.wcard{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px 13px;display:flex;flex-direction:column;gap:3px}
-.wcard .lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
+.weights{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.wcard{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:7px 11px;display:flex;flex-direction:column;gap:1px}
+.wcard .lbl{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
 .wcard .lbl .dot{width:9px;height:9px;border-radius:50%}
-.wcard .val{font-family:var(--brand);font-weight:700;font-size:21px;font-variant-numeric:tabular-nums;line-height:1.1}
+.wcard .val{font-family:var(--brand);font-weight:700;font-size:18px;font-variant-numeric:tabular-nums;line-height:1.1}
 .wcard .val small{font-size:12px;font-weight:600;color:var(--muted);margin-left:3px}
-.note{color:var(--muted);font-size:11px;line-height:1.45;margin:-2px 0 0}
+.note{color:var(--muted);font-size:10px;line-height:1.35;margin:-1px 0 0}
 
 /* Botão abrir */
 .openbtn{appearance:none;border:0;border-radius:12px;background:var(--accent);color:#1b1205;font-family:var(--brand);font-weight:700;
   font-size:15px;padding:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;letter-spacing:.02em}
-.openbtn.secondary{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:600;padding:11px}
+.openbtn.secondary{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:600;padding:8px;font-size:13px}
 .openbtn svg{width:18px;height:18px}
 input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .loading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(14,15,17,.6);font-size:14px;color:var(--muted)}
