@@ -60,6 +60,19 @@
                 <data android:mimeType="application/octet-stream" />
                 <data android:mimeType="application/sla" />
                 <data android:mimeType="model/stl" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+
+            <!-- Catch-all: garante que o NEXT STL apareça no "Abrir com" de qualquer
+                 arquivo (o WhatsApp entrega o STL com tipo variado). Arquivos que não
+                 forem STL simplesmente mostram um aviso ao tentar abrir. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="*/*" />
             </intent-filter>
         </activity>
     </application>
