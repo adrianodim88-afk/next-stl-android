@@ -1,0 +1,63 @@
+name: Build Adriano Dim (Controle) APK
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'controle/**'
+      - '.github/workflows/build-controle.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK packages (usa o SDK já instalado no runner)
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SM" ]; then SM="$(command -v sdkmanager)"; fi
+          yes | "$SM" --licenses >/dev/null 2>&1 || true
+          "$SM" "platforms;android-34" "build-tools;34.0.0" "platform-tools" >/dev/null 2>&1 || true
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build APK
+        run: gradle -p controle assembleRelease --no-daemon --stacktrace
+
+      - name: Prepare APK
+        run: |
+          mkdir -p out
+          cp controle/app/build/outputs/apk/release/app-release.apk out/Adriano-Dim-Controle.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Adriano-Dim-Controle-apk
+          path: out/Adriano-Dim-Controle.apk
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: controle-v${{ github.run_number }}
+          name: Adriano Dim (Controle) v${{ github.run_number }}
+          files: out/Adriano-Dim-Controle.apk
+          make_latest: false
+          body: |
+            App de controle de produção — Adriano Dim (Android).
+            Baixe o arquivo **Adriano-Dim-Controle.apk** abaixo e instale no celular.

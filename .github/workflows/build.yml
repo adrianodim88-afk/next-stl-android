@@ -3,6 +3,11 @@ name: Build NEXT STL APK
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'app/**'
+      - '*.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 
 permissions:
