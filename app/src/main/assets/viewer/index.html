@@ -6,6 +6,28 @@
 <title>NEXT STL</title>
 <style>[hidden]{display:none!important}html,body{margin:0}</style>
 <style>
+/* Tela de chave de acesso (licença). Fica por cima de tudo até liberar. */
+.lic{position:fixed;inset:0;z-index:9999;background:radial-gradient(1200px 600px at 50% -10%,#1b1e22,#0e0f11);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  padding:calc(env(safe-area-inset-top,0px) + 24px) max(20px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 24px) max(20px,env(safe-area-inset-left,0px));
+  color:#f3f4f5;text-align:center;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+.lic .logo{font-weight:700;letter-spacing:.16em;font-size:22px}
+.lic .logo b{color:#f47a1f}
+.lic .sub{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#9aa1a8;margin-top:2px}
+.lic .card{width:100%;max-width:360px;background:#17191c;border:1px solid #2a2e33;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:13px;margin-top:6px}
+.lic h2{margin:0;font-size:18px}
+.lic .msg{font-size:14px;color:#9aa1a8;line-height:1.5;min-height:20px}
+.lic .msg.erro{color:#ff9b6b}
+.lic .msg.ok{color:#4fc983}
+.lic input{font:600 18px system-ui,sans-serif;text-align:center;letter-spacing:.06em;padding:14px;border-radius:12px;border:1px solid #2a2e33;background:#0e0f11;color:#f3f4f5;text-transform:uppercase;outline:none}
+.lic input:focus{border-color:#f47a1f}
+.lic input::placeholder{color:#60666d;letter-spacing:.02em;text-transform:none;font-weight:400}
+.lic button.go{font:700 17px system-ui,sans-serif;background:#f47a1f;color:#131313;border:0;border-radius:12px;padding:15px;cursor:pointer}
+.lic button.go:disabled{opacity:.55}
+.lic .foot{font-size:12px;color:#9aa1a8;line-height:1.6}
+.lic .foot b{color:#f3f4f5}
+</style>
+<style>
 /* Layout: palco 3D em tela cheia (fundo escuro de joalheria) + painel inferior com os pesos. Tema único escuro, por escolha. */
 :root{
   --bg:#0e0f11;            /* fundo do palco */
@@ -93,6 +115,21 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 
 </head>
 <body>
+<!-- Tela de chave de acesso: cobre tudo até a licença ser confirmada -->
+<div id="lic" class="lic">
+  <div>
+    <div class="logo">◇ <b>NEXT</b> STL</div>
+    <div class="sub">Visualizador de joia</div>
+  </div>
+  <div class="card">
+    <h2 id="licTitle">Acesso</h2>
+    <div class="msg" id="licMsg">Verificando…</div>
+    <input id="licInput" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="NEXT-XXXX-XXXX-XXXX" hidden>
+    <button class="go" id="licGo" type="button" hidden>Entrar</button>
+    <div class="foot">Esta chave funciona em <b>1 aparelho</b>.<br>Precisa de ajuda? WhatsApp <b>(17) 99742-2904</b></div>
+  </div>
+</div>
+
 <div id="app">
   <div id="stage"></div>
 
@@ -145,6 +182,120 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
   <div class="toast" id="toast" hidden></div>
   <input type="file" id="file" accept=".stl,model/stl,application/sla">
 </div>
+
+<script>
+/* ===== NEXT · trava de licença (chave de acesso por aparelho) ===== */
+(function(){
+  var SERVIDOR='https://vmazolasgcqqtougsigx.supabase.co/functions/v1/next-licenca';
+  var APIKEY='sb_publishable_VmD2OB7pwmAxFkznwzi67Q_8jitygeO';
+  var PUB_X='eoJ4YZ4UJdgQmwhi90V9z2Ji7T5G7Wxilz6j1OG8odo';
+  var LIB={ativa:1,tolerancia:1};
+  var $=function(id){return document.getElementById(id);};
+
+  function b64uToBytes(s){s=String(s).replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';var bin=atob(s);var a=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a;}
+  function bytesToStr(a){var s='';for(var i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);try{return decodeURIComponent(escape(s));}catch(e){return s;}}
+  function randHex(n){var a=new Uint8Array(Math.ceil(n/2));crypto.getRandomValues(a);var s='';for(var i=0;i<a.length;i++)s+=('0'+a[i].toString(16)).slice(-2);return s.slice(0,n);}
+  function get(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+  function set(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+
+  function maquina(){
+    try{ if(window.NextNative&&NextNative.deviceId){var d=String(NextNative.deviceId()||'');if(/^[a-f0-9]{20,80}$/.test(d))return d;} }catch(e){}
+    var v=get('next_maq');
+    if(!v||!/^[a-f0-9]{20,80}$/.test(v)){v=randHex(40);set('next_maq',v);}
+    return v;
+  }
+  function maqNome(){try{if(window.NextNative&&NextNative.deviceName)return String(NextNative.deviceName()||'Celular').slice(0,60);}catch(e){}return 'Celular';}
+  var MAQ=maquina();
+  var ULTNONCE='';
+
+  /* Verificação da assinatura do servidor (Ed25519). Se o aparelho não suportar, usa o plano B (confia no HTTPS do servidor conhecido). */
+  var pubKey=null, podeVerificar=null;
+  async function prepararChave(){
+    if(podeVerificar!==null)return;
+    try{ pubKey=await crypto.subtle.importKey('jwk',{kty:'OKP',crv:'Ed25519',x:PUB_X},{name:'Ed25519'},false,['verify']); podeVerificar=true; }
+    catch(e){ podeVerificar=false; }
+  }
+  async function assinaturaOk(ticket,assinatura){
+    await prepararChave();
+    if(!podeVerificar)return true;
+    try{ return await crypto.subtle.verify({name:'Ed25519'},pubKey,b64uToBytes(assinatura),new TextEncoder().encode(ticket)); }
+    catch(e){ return false; }
+  }
+
+  async function consultar(chave){
+    ULTNONCE=randHex(36);
+    var r=await fetch(SERVIDOR,{method:'POST',headers:{'Content-Type':'application/json',apikey:APIKEY},
+      body:JSON.stringify({chave:chave,maquina:MAQ,maquina_nome:maqNome(),versao:'cel-1.0',nonce:ULTNONCE,plataforma:'cel'})});
+    if(!r.ok) throw new Error('servidor '+r.status);
+    return await r.json();
+  }
+
+  function titulo(t){ $('licTitle').textContent=t; }
+  function msg(txt,cls){ var m=$('licMsg'); m.textContent=txt; m.className='msg'+(cls?' '+cls:''); }
+  function form(mostrar){ $('licInput').hidden=!mostrar; $('licGo').hidden=!mostrar; }
+  function ocupado(b){ $('licGo').disabled=b; $('licGo').textContent=b?'Verificando…':'Entrar'; }
+
+  var MENS={
+    invalida:['Acesso','Chave não encontrada. Confira e digite de novo.','erro'],
+    outro_pc:['Chave em uso','Esta chave já está sendo usada em outro aparelho. Fale com o fornecedor para liberar.','erro'],
+    bloqueada:['Acesso bloqueado','Seu acesso está bloqueado no momento. Fale com o fornecedor.','erro'],
+    vencida:['Mensalidade vencida','Sua mensalidade venceu. Renove para voltar a usar.','erro'],
+    erro:['Acesso','Não consegui confirmar a chave agora. Tente de novo.','erro'],
+    sem_internet:['Sem internet','Preciso de internet pra confirmar a chave. Conecte e tente de novo.','erro']
+  };
+  function mostrarErro(st){ var m=MENS[st]||MENS.erro; titulo(m[0]); msg(m[1],m[2]); form(true); ocupado(false); }
+
+  function guardar(chave,ticket,assinatura){ set('next_chave',chave); set('next_ticket',ticket); set('next_assin',assinatura); set('next_visto',String(Date.now())); }
+
+  function liberar(){
+    window.__NEXT_LIBERADO=true;
+    var el=$('lic'); if(el) el.hidden=true;
+    try{ if(window.__pendingSTL&&window.__loadSTLFromNative){ var p=window.__pendingSTL; window.__pendingSTL=null; window.__loadSTLFromNative(p[0],p[1]); } }catch(e){}
+  }
+
+  async function processar(resp,chave,nova){
+    if(!resp||!resp.ticket){ mostrarErro('erro'); return; }
+    if(!(await assinaturaOk(resp.ticket,resp.assinatura))){ mostrarErro('erro'); return; }
+    var t; try{ t=JSON.parse(bytesToStr(b64uToBytes(resp.ticket))); }catch(e){ mostrarErro('erro'); return; }
+    if(t.maq!==MAQ || t.nonce!==ULTNONCE){ mostrarErro('erro'); return; }
+    if(LIB[t.st]){ guardar(t.chave,resp.ticket,resp.assinatura); liberar(); return; }
+    // guarda só a chave (para reabrir e tentar de novo), mas não libera
+    if(nova) set('next_chave',t.chave);
+    mostrarErro(t.st);
+  }
+
+  async function iniciar(){
+    titulo('Acesso'); msg('Verificando…'); form(false);
+    var chave=get('next_chave');
+    if(!chave){ titulo('Acesso'); msg('Digite a chave de acesso que você recebeu.'); form(true); ocupado(false); return; }
+    try{ var resp=await consultar(chave); await processar(resp,chave,false); }
+    catch(e){
+      // Sem internet: aceita o último comprovante assinado enquanto válido
+      var tk=get('next_ticket'), as=get('next_assin');
+      if(tk&&as&&await assinaturaOk(tk,as)){
+        try{ var t=JSON.parse(bytesToStr(b64uToBytes(tk)));
+          if(t.maq===MAQ && t.chave===chave && Date.now()<=Number(t.exp) && LIB[t.st]){ liberar(); return; } }catch(_){}
+      }
+      mostrarErro('sem_internet');
+    }
+  }
+
+  async function entrar(){
+    var chave=($('licInput').value||'').trim();
+    if(chave.replace(/[^A-Za-z0-9]/g,'').length<8){ msg('Digite a chave completa que você recebeu.','erro'); return; }
+    ocupado(true); msg('Verificando…');
+    try{ var resp=await consultar(chave); await processar(resp,chave,true); }
+    catch(e){ mostrarErro('sem_internet'); }
+  }
+
+  function ligar(){
+    $('licGo').addEventListener('click', entrar);
+    $('licInput').addEventListener('keydown', function(e){ if(e.key==='Enter') entrar(); });
+    iniciar();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', ligar); else ligar();
+})();
+</script>
 
 <script type="importmap">
 {"imports":{
@@ -296,6 +447,8 @@ setBg('black');
 
 // Ponte com o app Android: recebe o arquivo STL tocado no WhatsApp
 window.__loadSTLFromNative = function(nameB64, dataB64){
+  // Se ainda não liberou a licença, guarda o arquivo e abre depois de entrar
+  if(!window.__NEXT_LIBERADO){ window.__pendingSTL=[nameB64, dataB64]; $('loading').hidden = true; return; }
   try{
     const name = decodeURIComponent(escape(atob(nameB64)));
     const bin = atob(dataB64);

@@ -7,8 +7,10 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
+import android.provider.Settings;
 import android.util.Base64;
 import android.view.View;
+import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -21,6 +23,7 @@ import androidx.webkit.WebViewAssetLoader;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.security.MessageDigest;
 
 public class MainActivity extends Activity {
 
@@ -52,6 +55,10 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
+
+        // Ponte da licença: dá ao site um "número de série" fixo deste aparelho
+        // e o nome do celular, para travar a chave em um único aparelho.
+        webView.addJavascriptInterface(new LicencaBridge(), "NextNative");
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -199,6 +206,42 @@ public class MainActivity extends Activity {
             }
             fileCallback.onReceiveValue(result);
             fileCallback = null;
+        }
+    }
+
+    // ===== Ponte da licença (acessível no site como window.NextNative) =====
+    public class LicencaBridge {
+        // Número de série fixo do aparelho: 40 letras/números (a-f0-9).
+        // Baseado no ANDROID_ID, que sobrevive à reinstalação do app
+        // (muda só em outro aparelho ou ao resetar de fábrica).
+        @JavascriptInterface
+        public String deviceId() {
+            String aid = "";
+            try {
+                aid = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+            } catch (Exception ignored) {}
+            if (aid == null) aid = "";
+            String seed = "NEXT-STL|cel|" + aid + "|" + Build.MODEL + "|" + Build.MANUFACTURER;
+            try {
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                byte[] h = md.digest(seed.getBytes("UTF-8"));
+                StringBuilder sb = new StringBuilder();
+                for (byte b : h) sb.append(String.format("%02x", b));
+                return sb.substring(0, 40);
+            } catch (Exception e) {
+                // Plano B: ainda devolve 40 hex a partir do texto.
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < seed.length() && sb.length() < 40; i++)
+                    sb.append(String.format("%02x", seed.charAt(i) & 0xff));
+                while (sb.length() < 40) sb.append("0");
+                return sb.substring(0, 40);
+            }
+        }
+
+        @JavascriptInterface
+        public String deviceName() {
+            String n = (Build.MANUFACTURER + " " + Build.MODEL).trim();
+            return n.isEmpty() ? "Celular Android" : n;
         }
     }
 
