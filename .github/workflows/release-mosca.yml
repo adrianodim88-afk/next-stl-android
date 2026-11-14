@@ -1,0 +1,25 @@
+name: Publicar instalador do Mosca
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'mosca/**'
+      - '.github/workflows/release-mosca.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publicar release do Mosca
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mosca-v19
+          name: Mosca PDF v19 (instalador)
+          files: mosca/Mosca_PDF_V19_INSTALADOR.zip
+          make_latest: false
+          body: |
+            Instalador do Mosca PDF com chave de acesso.
+            Baixe o ZIP, extraia e rode Instalar_Mosca_PDF.
