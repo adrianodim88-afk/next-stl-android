@@ -21,9 +21,12 @@ import android.webkit.WebViewClient;
 
 import androidx.webkit.WebViewAssetLoader;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.security.MessageDigest;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends Activity {
 
@@ -34,6 +37,8 @@ public class MainActivity extends Activity {
     private WebViewAssetLoader assetLoader;
     private boolean pageReady = false;
     private Uri pendingUri = null;
+    // STL atual, servido em fluxo para o visualizador (sem carregar tudo na memória)
+    private volatile Uri stlFileUri = null;
 
     // Seleção de arquivo pelo botão "Abrir STL" dentro do app
     private ValueCallback<Uri[]> fileCallback;
@@ -63,6 +68,26 @@ public class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                String reqPath = request.getUrl().getPath();
+                // Entrega o STL em fluxo (arquivos pesados abrem sem estourar a memória).
+                if (reqPath != null && reqPath.endsWith("/__stlfile")) {
+                    Map<String, String> headers = new HashMap<>();
+                    headers.put("Access-Control-Allow-Origin", "*");
+                    headers.put("Cache-Control", "no-store");
+                    try {
+                        Uri u = stlFileUri;
+                        InputStream in = (u != null) ? getContentResolver().openInputStream(u) : null;
+                        if (in != null) {
+                            WebResourceResponse r = new WebResourceResponse("application/octet-stream", null, in);
+                            r.setResponseHeaders(headers);
+                            return r;
+                        }
+                    } catch (Exception ignored) {}
+                    WebResourceResponse empty = new WebResourceResponse(
+                            "application/octet-stream", null, new ByteArrayInputStream(new byte[0]));
+                    empty.setResponseHeaders(headers);
+                    return empty;
+                }
                 WebResourceResponse resp = assetLoader.shouldInterceptRequest(request.getUrl());
                 if (resp != null) {
                     String path = request.getUrl().getPath();
@@ -140,28 +165,22 @@ public class MainActivity extends Activity {
     }
 
     private void loadUriIntoViewer(final Uri uri) {
-        new Thread(new Runnable() {
+        // Guarda o arquivo para servir em fluxo e avisa o visualizador (mensagem curtinha).
+        stlFileUri = uri;
+        String nameB64x;
+        try {
+            nameB64x = Base64.encodeToString(queryName(uri).getBytes("UTF-8"), Base64.NO_WRAP);
+        } catch (Exception e) {
+            nameB64x = Base64.encodeToString("Joia STL".getBytes(), Base64.NO_WRAP);
+        }
+        final String nameB64 = nameB64x;
+        runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    final String name = queryName(uri);
-                    byte[] bytes = readAll(uri);
-                    if (bytes == null || bytes.length == 0) return;
-                    final String dataB64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
-                    final String nameB64 = Base64.encodeToString(
-                            name.getBytes("UTF-8"), Base64.NO_WRAP);
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            String js = "window.__loadSTLFromNative && window.__loadSTLFromNative('"
-                                    + nameB64 + "','" + dataB64 + "')";
-                            webView.evaluateJavascript(js, null);
-                        }
-                    });
-                } catch (Exception ignored) {
-                }
+                String js = "window.__loadSTLFromUrl && window.__loadSTLFromUrl('" + nameB64 + "')";
+                webView.evaluateJavascript(js, null);
             }
-        }).start();
+        });
     }
 
     private byte[] readAll(Uri uri) {

@@ -250,7 +250,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
   function liberar(){
     window.__NEXT_LIBERADO=true;
     var el=$('lic'); if(el) el.hidden=true;
-    try{ if(window.__pendingSTL&&window.__loadSTLFromNative){ var p=window.__pendingSTL; window.__pendingSTL=null; window.__loadSTLFromNative(p[0],p[1]); } }catch(e){}
+    try{ if(window.__pendingSTLUrl&&window.__loadSTLFromUrl){ var pu=window.__pendingSTLUrl; window.__pendingSTLUrl=null; window.__loadSTLFromUrl(pu); } else if(window.__pendingSTL&&window.__loadSTLFromNative){ var p=window.__pendingSTL; window.__pendingSTL=null; window.__loadSTLFromNative(p[0],p[1]); } }catch(e){}
   }
 
   async function processar(resp,chave,nova){
@@ -460,6 +460,22 @@ window.__loadSTLFromNative = function(nameB64, dataB64){
     loadGeometry(geo, name || 'Joia STL');
     $('loading').hidden = true;
   }catch(e){ $('loading').hidden = true; toast('Não consegui abrir este STL.'); }
+};
+
+// Jeito novo (arquivos pesados): o app serve o STL em fluxo e aqui a gente lê direto,
+// sem "inflar" na memória. Aguenta arquivos bem maiores (ex.: ~100 MB).
+window.__loadSTLFromUrl = async function(nameB64){
+  if(!window.__NEXT_LIBERADO){ window.__pendingSTLUrl = nameB64; $('loading').hidden = true; return; }
+  $('loading').hidden = false;
+  try{
+    const name = decodeURIComponent(escape(atob(nameB64)));
+    const r = await fetch('/__stlfile', {cache:'no-store'});
+    if(!r.ok) throw new Error('fetch '+r.status);
+    const buf = await r.arrayBuffer();
+    const geo = loader.parse(buf);
+    loadGeometry(geo, name || 'Joia STL');
+  }catch(e){ toast('Não consegui abrir este STL.'); }
+  finally{ $('loading').hidden = true; }
 };
 
 (function loop(){ requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
